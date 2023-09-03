@@ -1,5 +1,5 @@
-use std::net::{TcpListener, TcpStream};
 use std::io::{Read, Write};
+use std::net::{TcpListener, TcpStream};
 
 struct Route {
     path: String,
@@ -43,6 +43,14 @@ impl HttpServer {
 
         let request = String::from_utf8_lossy(&buffer);
         let response = self.route_request(&request);
+        let mut body = request.split("\r\n");
+        let body_size = body.clone().count();
+        if let Some(body_line) = body.nth(body_size-1) {
+            // This is the body
+            println!("{}", body_line);
+        } else {
+            println!("Second line not found.");
+        }
 
         stream.write(response.as_bytes()).unwrap();
         stream.flush().unwrap();
@@ -51,8 +59,11 @@ impl HttpServer {
     fn route_request(&self, request: &str) -> String {
         for route in &self.routes {
             if request.contains(&route.path) {
-                return format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
-                    route.response.len(), route.response);
+                return format!(
+                    "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
+                    route.response.len(),
+                    route.response
+                );
             }
         }
         return "HTTP/1.1 404 Not Found\r\n\r\n404 Not Found".to_string();
